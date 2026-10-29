@@ -1,0 +1,15 @@
+services:
+  pg-identify-service:
+    image: postgres:16
+    container_name: pg-identify-service
+    environment:
+      POSTGRES_DB: identify_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-identify-service-data:/var/lib/postgresql/data
+
+volumes:
+  pg-identify-service-data:
