@@ -7,7 +7,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TokenServiceTests {
-    private final TokenService service = new TokenService();
+    private final TokenService service = new TokenService(org.mockito.Mockito.mock(org.springframework.security.oauth2.jwt.JwtEncoder.class), 3600);
 
     @Test
     void extractsUuidSubject() {

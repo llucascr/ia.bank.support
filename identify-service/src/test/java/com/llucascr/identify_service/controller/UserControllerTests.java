@@ -26,6 +26,7 @@ class UserControllerTests {
     @Autowired MockMvc mvc;
     @MockitoBean UserService service;
     @MockitoBean JwtDecoder jwtDecoder;
+    @MockitoBean org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder;
     private final UUID id = UUID.randomUUID();
 
     private UserResponse response() {

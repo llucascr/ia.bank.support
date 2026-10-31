@@ -11,5 +11,23 @@ services:
     volumes:
       - pg-identify-service-data:/var/lib/postgresql/data
 
+  pg-test-identify-service:
+    image: postgres:16
+    container_name: pg-test-identify-service
+    environment:
+      POSTGRES_DB: identify_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-test-identify-service-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d identify_service"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
 volumes:
   pg-identify-service-data:
+  pg-test-identify-service-data:
