@@ -43,16 +43,24 @@ public class UserService {
 
     @Transactional
     public UserResponse create(UserCreateRequest request) {
-    if (userRepository.existsByCpf(request.cpf())) {
+        if (userRepository.existsByCpf(request.cpf())) {
             throw new UserAlreadyExistsException("User already exists with this CPF");
         }
         String email = normalizeEmail(request.email());
+
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new UserAlreadyExistsException("User already exists with this email");
         }
-        User user = User.builder().cpf(request.cpf()).fullName(request.fullName().strip())
-                .email(email).passwordHash(passwordEncoder.encode(request.password()))
-                .role(Role.CUSTOMER.name()).status(Status.ACTIVE.name()).build();
+
+        User user = User.builder()
+                .cpf(request.cpf())
+                .fullName(request.fullName().strip())
+                .email(email)
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .role(Role.CUSTOMER.name())
+                .status(Status.ACTIVE.name())
+                .build();
+
         return response(save(user));
     }
 
@@ -65,16 +73,15 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query must not be blank");
         }
         String term = query.strip();
-        String pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        String pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%")
+                .replace("_", "\\_") + "%";
         return userRepository.search(term, pattern).stream().map(this::response).toList();
     }
 
     @Transactional
     public UserResponse update(UUID id, UserUpdateRequest request) {
         User user = findUser(id);
-        if (request.fullName() != null) {
-            user.setFullName(request.fullName().strip());
-        }
+        user.setFullName(request.fullName() == null ? user.getFullName() : request.fullName().strip());
         if (request.email() != null) {
             changeEmail(user, request.email());
         }
