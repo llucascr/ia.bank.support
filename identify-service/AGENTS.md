@@ -13,3 +13,4 @@
 - Test RSA keys are temporary and shared through the test support code.
 - Authentication coverage includes registration, login, `/v1/users/me`, and JWT failures.
 - Preserve the other tests and their existing database configurations.
+- Never adding comments in the code
