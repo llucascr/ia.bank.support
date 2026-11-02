@@ -1,10 +1,10 @@
 # Identify service
 
-Requer Java 25 e PostgreSQL (a configuração local usa o banco `identify_service`).
+Requires Java 25 and PostgreSQL (the local configuration uses the `identify_service` database).
 
-## Chaves JWT
+## JWT keys
 
-Forneça um par RSA correspondente. Para desenvolvimento, gere as chaves em uma pasta fora do repositório:
+Provide a matching RSA key pair. For development, generate the keys in a directory outside the repository:
 
 ```sh
 mkdir -p /tmp/identify-service-keys
@@ -16,42 +16,81 @@ export JWT_PUBLIC_KEY=file:/tmp/identify-service-keys/public.pem
 ./mvnw spring-boot:run
 ```
 
-Não versione a chave privada. Configure `JWT_PRIVATE_KEY` e `JWT_PUBLIC_KEY` com localizações `file:` ou `classpath:`. Os padrões são `classpath:keys/private.pem` e `classpath:keys/public.pem`; a chave privada não é distribuída. `JWT_EXPIRATION_SECONDS` controla a validade (padrão: 3600 segundos, deve ser positivo).
+Do not commit the private key. Set `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` to `file:` or `classpath:` locations. The defaults are `classpath:keys/private.pem` and `classpath:keys/public.pem`; the private key is not distributed. `JWT_EXPIRATION_SECONDS` controls token validity (default: 3600 seconds; must be positive).
 
-## Autenticação
+## Authentication
 
-As rotas de autenticação usam o prefixo `/v1/auth`.
+Authentication routes use the `/v1/auth` prefix.
 
-`POST /v1/auth/register` recebe:
+`POST /v1/auth/register` accepts:
 
 ```json
 {"cpf":"12345678901","fullName":"Lucas","email":"lucas@example.com","password":"password123"}
 ```
 
-Retorna HTTP 201. CPF deve conter 11 dígitos, e a senha deve ter pelo menos 8 caracteres. Contas são criadas como `CUSTOMER` e `ACTIVE`; CPF/e-mail duplicados retornam 409.
+Returns HTTP 201. CPF must contain 11 digits, and passwords must contain at least 8 characters. Accounts are created as `CUSTOMER` and `ACTIVE`; duplicate CPF or email values return 409.
 
-`POST /v1/auth/login` recebe:
+`POST /v1/auth/login` accepts:
 
 ```json
 {"cpf":"12345678901","password":"password123"}
 ```
 
-Retorna HTTP 200. As duas rotas respondem:
+Returns HTTP 200. Both routes respond with:
 
 ```json
 {"accessToken":"<JWT>","tokenType":"Bearer","expiresIn":3600}
 ```
 
-Envie `Authorization: Bearer <JWT>` nas demais rotas, por exemplo `GET /v1/users/me`. Credenciais incorretas ou conta bloqueada retornam 401 com mensagem genérica; dados inválidos retornam 400. Bloquear uma conta impede novos logins; tokens já emitidos continuam válidos até expirar. Não há refresh token ou logout nesta versão.
+Send `Authorization: Bearer <JWT>` to the other routes, such as `GET /v1/users/me`. Invalid credentials or a blocked account return 401 with a generic message; invalid input returns 400. Blocking an account prevents new logins; previously issued tokens remain valid until they expire. This version does not support refresh tokens or logout.
 
 Swagger: `/swagger-ui/index.html`.
 
-## Testes
+## Testing
 
-Execute a suíte completa a partir da raiz do repositório:
+### GitHub Actions CI
+
+The `.github/actions/ci/action.yml` action inside `identify-service` orchestrates
+the following steps in order:
+
+1. `validate-pr`: immediately fails if the PR targets `main`.
+2. `check-coverage`: runs all Java tests, including authentication with PostgreSQL,
+   generates the JaCoCo report, and requires overall line coverage of production Java
+   code to be **greater than 70%**. Exactly 70% fails. No tests or production classes
+   are excluded. A missing, invalid, or empty report also fails. The percentage
+   appears in the CI summary.
+3. `run-tests`: after coverage passes, runs all microservice tests, including
+   authentication with real HTTP, PostgreSQL, and Flyway.
+
+The coverage and test steps use Java 25 and only run when changes affect the service,
+Compose configuration, or workflow. A failure stops subsequent steps.
+
+The `../.github/workflows/identify-service-ci.yml` workflow triggers on PRs from
+`feat/identify-service` and calls this local action. GitHub requires workflows to
+reside in `.github/workflows` at the repository root. Each microservice will have
+its own entry workflow there and its implementation inside the service.
+To prevent merges into `main`, configure `Identify service CI` as a required check
+in the branch protection settings.
+
+### Local execution
+
+To measure and verify Java code coverage using the complete suite, run from the
+repository root:
+
+```sh
+./identify-service/scripts/test-auth.sh --batch-mode --no-transfer-progress -Pcoverage clean test jacoco:report
+python3 identify-service/scripts/check-coverage.py
+```
+
+The HTML report is available at `identify-service/target/site/jacoco/index.html`
+relative to the repository root. Measuring coverage requires executing tests to
+identify which lines were exercised; the complete suite then runs again as a
+separate CI step.
+
+Run the complete suite from the repository root:
 
 ```sh
 ./identify-service/scripts/test-auth.sh
 ```
 
-O script aguarda o container `pg-test-identify-service` saudável na porta `5433` e roda `./mvnw test`. Os testes de autenticação usam HTTP real, Flyway e um par RSA temporário. Eles limpam os usuários do banco de teste antes de cada cenário. Nunca configure os testes para a instância principal na porta `5432`; o container de teste permanece rodando ao final.
+The script waits for the `pg-test-identify-service` container to become healthy on port `5433`, then runs `./mvnw test`. Authentication tests use real HTTP, Flyway, and a temporary RSA key pair. They clean up users in the test database before each scenario. Never point the tests at the primary instance on port `5432`; the test container remains running afterward.
