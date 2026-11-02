@@ -79,8 +79,12 @@ repository root:
 
 ```sh
 ./identify-service/scripts/test-auth.sh --batch-mode --no-transfer-progress -Pcoverage clean test jacoco:report
-python3 identify-service/scripts/check-coverage.py
+./identify-service/scripts/check-coverage.sh
 ```
+
+The shell checker uses `xmllint` to read the JaCoCo XML report and `awk` to format
+the percentage. On Ubuntu, install `libxml2-utils` if `xmllint` is unavailable;
+the CI action installs it automatically when needed.
 
 The HTML report is available at `identify-service/target/site/jacoco/index.html`
 relative to the repository root. Measuring coverage requires executing tests to

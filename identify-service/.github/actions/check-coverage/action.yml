@@ -4,6 +4,14 @@ description: Measures Java code coverage using all tests and requires more than 
 runs:
   using: composite
   steps:
+    - name: Install XML parser if needed
+      shell: bash
+      run: |
+        if ! command -v xmllint >/dev/null 2>&1; then
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libxml2-utils
+        fi
+
     - name: Generate JaCoCo report
       shell: bash
       run: >-
@@ -12,4 +20,4 @@ runs:
 
     - name: Require line coverage above 70 percent
       shell: bash
-      run: python3 identify-service/scripts/check-coverage.py
+      run: ./identify-service/scripts/check-coverage.sh
