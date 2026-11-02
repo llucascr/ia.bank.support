@@ -1,0 +1,15 @@
+name: Validate identify-service PR
+description: Immediately rejects pull requests targeting main.
+
+runs:
+  using: composite
+  steps:
+    - name: Reject main as destination
+      shell: bash
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: |
+        if [[ "$BASE_REF" == "main" ]]; then
+          echo "::error::Pull requests from feat/identify-service must not target main."
+          exit 1
+        fi

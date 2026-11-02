@@ -1,0 +1,15 @@
+name: Check identify-service coverage
+description: Measures Java code coverage using all tests and requires more than 70% coverage.
+
+runs:
+  using: composite
+  steps:
+    - name: Generate JaCoCo report
+      shell: bash
+      run: >-
+        ./identify-service/scripts/test-auth.sh
+        --batch-mode --no-transfer-progress -Pcoverage clean test jacoco:report
+
+    - name: Require line coverage above 70 percent
+      shell: bash
+      run: python3 identify-service/scripts/check-coverage.py

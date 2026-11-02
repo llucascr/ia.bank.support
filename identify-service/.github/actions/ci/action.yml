@@ -1,0 +1,42 @@
+name: Identify service CI
+description: Orchestrates PR validation, coverage checks, and identify-service tests.
+
+runs:
+  using: composite
+  steps:
+    - name: Validate PR destination
+      uses: ./identify-service/.github/actions/validate-pr
+
+    - name: Detect changes to identify-service
+      id: changes
+      shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        changed_files="$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA" -- \
+          identify-service/ docker-compose.yaml .github/workflows/identify-service-ci.yml)"
+
+        if [[ -n "$changed_files" ]]; then
+          echo "identify_service=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "identify_service=false" >> "$GITHUB_OUTPUT"
+          echo "No changes affect identify-service; skipping the test suite."
+        fi
+
+    - name: Set up Java 25
+      if: steps.changes.outputs.identify_service == 'true'
+      uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: maven
+        cache-dependency-path: identify-service/pom.xml
+
+    - name: Check line coverage above 70 percent
+      if: steps.changes.outputs.identify_service == 'true'
+      uses: ./identify-service/.github/actions/check-coverage
+
+    - name: Run all identify-service tests
+      if: steps.changes.outputs.identify_service == 'true'
+      uses: ./identify-service/.github/actions/run-tests
