@@ -1,0 +1,9 @@
+name: Run identify-service tests
+description: Runs the complete test suite, including HTTP, PostgreSQL, and Flyway.
+
+runs:
+  using: composite
+  steps:
+    - name: Run complete test suite with PostgreSQL
+      shell: bash
+      run: ./identify-service/scripts/test-auth.sh
